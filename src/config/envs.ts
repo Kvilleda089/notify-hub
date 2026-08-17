@@ -7,6 +7,7 @@ interface EnVars {
   DATABASE_URL: string;
   REDIS_HOST: string;
   REDIS_PORT: number;
+  ADMIN_API_TOKEN: string; 
 }
 
 const envsSchema = joi
@@ -15,6 +16,8 @@ const envsSchema = joi
     DATABASE_URL: joi.string().required(),
     REDIS_HOST: joi.string().required(),
     REDIS_PORT: joi.number().required(),
+    ADMIN_API_TOKEN: joi.string().required(),
+
   })
   .unknown(true);
 
@@ -33,5 +36,5 @@ export const env = {
     database_url: envVars.DATABASE_URL,
     redis_host: envVars.REDIS_HOST,
     redis_port: envVars.REDIS_PORT,
-
+    admin_api_token: envVars.ADMIN_API_TOKEN,
 }
