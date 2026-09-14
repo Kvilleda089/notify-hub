@@ -73,8 +73,8 @@ export class NotificationProcessor extends WorkerHost {
             id: notification.id,
             recipient: notification.recipient,
             subject: notification.subject,
-            templateCode: notification.templateCode,
-            payload: notification.payload,
+            htmlContent: notification.htmlContent,
+            textContent: notification.textContent,
         });
 
         await this.prismaService.$transaction([

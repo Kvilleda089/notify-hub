@@ -3,7 +3,7 @@ import { CreateNotificationCommand } from "../impl/create-notification.command";
 import { ConflictException, Logger } from "@nestjs/common";
 import { CreateNotificationDto } from "src/modules/notifications/domain/dto/create-notification.dto";
 import { PrismaService } from "src/database/prisma.service";
-import { NotificationChannel, NotificationStatus } from "@prisma/client";
+import { NotificationChannel, NotificationStatus, Prisma } from "src/generated/prisma/client";
 import { handlePrismaError } from "src/database/helpers/prisma-error.handler";
 import { NotificationQueueService } from "../../queues/notification-queue.service";
 
@@ -49,9 +49,11 @@ export class CreateNotificationHandler implements ICommandHandler<CreateNotifica
         if (existing) {
             const isSameRequest =
                 existing.recipient === dataNotification.recipient &&
-                existing.templateCode === dataNotification.templateCode &&
-                existing.subject === (dataNotification.subject ?? null) &&
-                JSON.stringify(existing.payload) === JSON.stringify(dataNotification.payload);
+                existing.subject === dataNotification.subject &&
+                existing.htmlContent === dataNotification.htmlContent &&
+                existing.textContent === (dataNotification.textContent ?? null) &&
+                JSON.stringify(existing.metadata) ===
+                JSON.stringify(dataNotification.metadata ?? null);
 
             if (!isSameRequest) {
                 throw new ConflictException(`Idempotency-Key is already being used with different data.`);
@@ -65,9 +67,10 @@ export class CreateNotificationHandler implements ICommandHandler<CreateNotifica
                 projectId: projectId,
                 idempotencyKey: idempotencyKey,
                 recipient: dataNotification.recipient,
-                templateCode: dataNotification.templateCode,
-                payload: dataNotification.payload,
                 subject: dataNotification.subject,
+                htmlContent: dataNotification.htmlContent,
+                textContent: dataNotification.textContent,
+                metadata: dataNotification.metadata as Prisma.InputJsonValue | undefined,
                 channel: NotificationChannel.EMAIL,
                 status: NotificationStatus.PENDING,
             },

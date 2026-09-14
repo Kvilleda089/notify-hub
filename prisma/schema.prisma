@@ -75,9 +75,10 @@ model Notification {
   projectId      String              @map("project_id") @db.Uuid
   channel        NotificationChannel @default(EMAIL)
   recipient      String              @db.VarChar(320)
-  subject        String?             @db.VarChar(255)
-  templateCode   String              @map("template_code") @db.VarChar(150)
-  payload        Json
+  subject        String              @db.VarChar(255)
+  htmlContent    String              @map("html_content") @db.Text
+  textContent    String?             @map("text_content") @db.Text
+  metadata       Json?
   status         NotificationStatus  @default(PENDING)
   idempotencyKey String              @map("idempotency_key") @db.VarChar(255)
   scheduledAt    DateTime?           @map("scheduled_at")
