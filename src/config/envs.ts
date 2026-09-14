@@ -9,6 +9,8 @@ interface EnVars {
   REDIS_PORT: number;
   ADMIN_API_TOKEN: string; 
   API_KEY_PEPPER: string;
+  RESEND_API_KEY: string;
+  EMAIL_FROM: string;
 }
 
 const envsSchema = joi
@@ -19,7 +21,8 @@ const envsSchema = joi
     REDIS_PORT: joi.number().required(),
     ADMIN_API_TOKEN: joi.string().required(),
     API_KEY_PEPPER: joi.string().required(),
-
+    RESEND_API_KEY: joi.string().required(),
+    EMAIL_FROM: joi.string().required(),
 
   })
   .unknown(true);
@@ -41,4 +44,6 @@ export const env = {
     redis_port: envVars.REDIS_PORT,
     admin_api_token: envVars.ADMIN_API_TOKEN,
     api_key_pepper:  envVars.API_KEY_PEPPER,
+    resend_api_key: envVars.RESEND_API_KEY,
+    email_from: envVars.EMAIL_FROM,
 }
