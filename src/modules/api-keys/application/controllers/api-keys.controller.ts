@@ -1,7 +1,7 @@
 import { Body, Controller, Param, ParseUUIDPipe, Post, UseGuards } from "@nestjs/common";
 import { CommandBus } from "@nestjs/cqrs";
 import { CreateApiKeyDto } from "../dto";
-import { CreateApiKeyCommand } from "../commands/create-api-key.command";
+import { CreateApiKeyCommand } from "../commands/impl/create-api-key.command";
 import { AdminTokenGuard } from "src/common";
 
 @Controller('admin/projects/:projectId/api-keys')
