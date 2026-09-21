@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { CreateApiKeyCommand } from "../commands/create-api-key.command";
+import { CreateApiKeyCommand } from "../impl/create-api-key.command";
 import { PrismaService } from "src/database/prisma.service";
-import { ApiKeyGeneratorService } from "../../infrastructure/security/api-key-generator.service";
+import { ApiKeyGeneratorService } from "../../../infrastructure/security/api-key-generator.service";
 import { BadRequestException, Logger, NotFoundException } from "@nestjs/common";
 import { ProjectSatus } from "@prisma/client";
 
