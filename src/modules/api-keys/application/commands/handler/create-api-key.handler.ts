@@ -3,7 +3,7 @@ import { CreateApiKeyCommand } from "../impl/create-api-key.command";
 import { PrismaService } from "src/database/prisma.service";
 import { ApiKeyGeneratorService } from "../../../infrastructure/security/api-key-generator.service";
 import { BadRequestException, Logger, NotFoundException } from "@nestjs/common";
-import { ProjectSatus } from "@prisma/client";
+import { ProjectStatus } from "src/generated/prisma/enums";
 
 
 @CommandHandler(CreateApiKeyCommand)
@@ -31,9 +31,9 @@ export class CreateApiKeyHandler implements ICommandHandler<CreateApiKeyCommand>
             throw new NotFoundException(`Project not found. `)
         }
 
-        if( project.status !== ProjectSatus.ACTIVE){
+        if( project.status !== ProjectStatus.ACTIVE){
             this.logger.log("Project is inactive")
-            throw new BadRequestException('Project i inactive.')
+            throw new BadRequestException('Project is inactive.')
         };
 
         const generatedKey = this.apiKeyGenerator.generate();
@@ -42,7 +42,7 @@ export class CreateApiKeyHandler implements ICommandHandler<CreateApiKeyCommand>
                 projectId,
                 name,
                 prefix: generatedKey.prefix,
-                keyHas: this.apiKeyGenerator.hash(generatedKey.rawKey),
+                keyHash: this.apiKeyGenerator.hash(generatedKey.rawKey),
             }, 
             select: {
                 id: true,
