@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from 'src/database/prisma.module';
-import { CreateApiKeyHandler } from './application/handler/create-api-key.handler';
+import { CreateApiKeyHandler } from './application/commands/handler/create-api-key.handler';
 import { ApiKeyGeneratorService } from './infrastructure/security/api-key-generator.service';
 import { ApiKeysController } from './application/controllers/api-keys.controller';
 import { AdminTokenGuard } from 'src/common';
