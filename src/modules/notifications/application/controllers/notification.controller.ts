@@ -25,10 +25,15 @@ export class NotificationsController {
     @Body() dataNotification: CreateNotificationDto,
   ) {
     
+    if(!idempotencyKey?.trim()) {
+      throw new BadRequestException('Idempotency-Key header is required.');
+    };
+
+
     return this.commandBus.execute(
       new CreateNotificationCommand(
         request.auth.projectId,
-        idempotencyKey!,
+        idempotencyKey,
         dataNotification,
       ),
     );
