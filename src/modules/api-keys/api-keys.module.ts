@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from 'src/database/prisma.module';
-import { CreateApiKeyHandler } from './application/commands/handler/create-api-key.handler';
 import { ApiKeyGeneratorService } from './infrastructure/security/api-key-generator.service';
 import { ApiKeysController } from './application/controllers/api-keys.controller';
 import { AdminTokenGuard } from 'src/common';
 import { ApiKeyGuard } from './application/guards/api-key.guard';
 import { ProjectContextController } from './application/controllers/project-context.controller';
+import { ApiKeysHandlers } from './application/commands/handler';
 
 @Module({
 
@@ -15,7 +15,7 @@ import { ProjectContextController } from './application/controllers/project-cont
         ProjectContextController,
     ],
     providers: [
-        CreateApiKeyHandler, 
+        ...ApiKeysHandlers, 
         ApiKeyGeneratorService,
         AdminTokenGuard,
         ApiKeyGuard,

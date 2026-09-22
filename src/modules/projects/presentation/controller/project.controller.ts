@@ -1,4 +1,4 @@
-import { Body, Controller, Logger, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Post, UseGuards } from "@nestjs/common";
 import { CommandBus } from "@nestjs/cqrs";
 import { CreateProjectDto } from "..";
 import { CreateProjectCommand } from "../../application/commands/impl/create-project.command";
