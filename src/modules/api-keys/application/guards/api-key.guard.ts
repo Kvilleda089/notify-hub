@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { PrismaService } from "src/database/prisma.service";
 import { ApiKeyGeneratorService } from "../../infrastructure/security/api-key-generator.service";
 import { AuthenticationRequest } from "src/common";
-import { ProjectSatus } from "@prisma/client";
+import { ProjectStatus } from "src/generated/prisma/enums";
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -19,7 +19,7 @@ export class ApiKeyGuard implements CanActivate {
         const keyHash = this.apiKeyGenerator.hash(rawApiKey);
 
         const apiKey = await this.prisma.apiKey.findUnique({
-            where: {keyHas: keyHash},
+            where: {keyHash: keyHash},
             select: {
                 id: true,
                 revokedAt: true,
@@ -37,7 +37,7 @@ export class ApiKeyGuard implements CanActivate {
             !apiKey ||
       apiKey.revokedAt ||
       (apiKey.expiresAt && apiKey.expiresAt < new Date()) ||
-      apiKey.project.status !== ProjectSatus.ACTIVE
+      apiKey.project.status !== ProjectStatus.ACTIVE
         ) {
             throw new UnauthorizedException('Invalid API key.');
         }
