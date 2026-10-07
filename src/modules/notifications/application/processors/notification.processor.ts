@@ -1,5 +1,5 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
-import { NOTIFICATIONS_QUEUE, PROCESS_NOTIFICATION_JOB } from "../queues/notification-queue.service";
+import { NOTIFICATIONS_QUEUE, PROCESS_NOTIFICATION_JOB, RESEND_NOTIFICATION_JOB } from "../queues/notification-queue.service";
 import { Logger } from "@nestjs/common";
 import { Job } from "bullmq";
 import { PrismaService } from "src/database/prisma.service";
@@ -24,7 +24,9 @@ export class NotificationProcessor extends WorkerHost {
     }
 
     async process(job: Job<ProcessNotificationJob>) {
-        if (job.name !== PROCESS_NOTIFICATION_JOB) {
+          const isResend = job.name === RESEND_NOTIFICATION_JOB;
+
+        if (job.name !== PROCESS_NOTIFICATION_JOB && !isResend) {
             throw new Error(`Unsupported job: ${job.name}`);
         }
 
@@ -34,19 +36,23 @@ export class NotificationProcessor extends WorkerHost {
             },
         });
 
-        if (!notification) {
-            return;
-        }
+        if (!notification)  return;
 
         if (
-            notification.status === NotificationStatus.SENT ||
-            notification.status === NotificationStatus.FAILED ||
-            notification.status === NotificationStatus.CANCELLED
+            !isResend &&
+            (notification.status === NotificationStatus.SENT ||
+                notification.status === NotificationStatus.FAILED ||
+                notification.status === NotificationStatus.CANCELLED)
         ) {
             return;
         }
 
-        const attemptNumber = job.attemptsMade + 1;
+        const previousAttempts = await this.prismaService.deliveryAttempt.count({
+            where: { notificationId: notification.id },
+        });
+ 
+
+        const attemptNumber = previousAttempts + 1;
         let deliveryAttemptId: string | null = null;
 
         try {
