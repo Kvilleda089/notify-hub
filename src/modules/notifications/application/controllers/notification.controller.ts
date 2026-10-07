@@ -3,6 +3,8 @@ import {
   Body,
   Controller,
   Headers,
+  Param,
+  ParseUUIDPipe,
   Post,
   Req,
   UseGuards,
@@ -12,11 +14,12 @@ import type { AuthenticationRequest } from 'src/common';
 import { ApiKeyGuard } from 'src/modules/api-keys/application/guards/api-key.guard';
 import { CreateNotificationCommand } from '../commands/impl/create-notification.command';
 import { CreateNotificationDto } from '../../domain/dto/create-notification.dto';
+import { ResendNotificationCommand } from '../commands/impl/resend-notification.command';
 
 @Controller('v1/notifications')
 @UseGuards(ApiKeyGuard)
 export class NotificationsController {
-  constructor(private readonly commandBus: CommandBus) {}
+  constructor(private readonly commandBus: CommandBus) { }
 
   @Post()
   create(
@@ -24,13 +27,28 @@ export class NotificationsController {
     @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Body() dataNotification: CreateNotificationDto,
   ) {
-    
+
+    if (!idempotencyKey?.trim()) {
+      throw new BadRequestException('Idempotency-Key header is required.');
+    };
+
+
     return this.commandBus.execute(
       new CreateNotificationCommand(
         request.auth.projectId,
-        idempotencyKey!,
+        idempotencyKey,
         dataNotification,
       ),
+    );
+  };
+
+  @Post(':id/resend')
+  resend(
+    @Req() request: AuthenticationRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.commandBus.execute(
+      new ResendNotificationCommand(request.auth.projectId, id),
     );
   }
 }

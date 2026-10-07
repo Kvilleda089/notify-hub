@@ -5,6 +5,7 @@ import { Queue } from "bullmq";
 
 export const NOTIFICATIONS_QUEUE = 'notifications';
 export const PROCESS_NOTIFICATION_JOB = 'process-notification';
+export const RESEND_NOTIFICATION_JOB = 'resend-notification';
 
 
 @Injectable()
@@ -28,6 +29,18 @@ export class NotificationQueueService {
                     type: 'exponential',
                     delay: 1000,
                 },
+            },
+        );
+    };
+
+    async enqueueResend(notificationId: string) {
+        return this.notificationQueue.add(
+            RESEND_NOTIFICATION_JOB,
+            { notificationId },
+            {
+                jobId: `notification-resend-${notificationId}-${Date.now()}`,
+                attempts: 3,
+                backoff: { type: 'exponential', delay: 1000 },
             },
         );
     }
