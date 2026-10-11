@@ -4,8 +4,7 @@ import { Logger } from "@nestjs/common";
 import { Job } from "bullmq";
 import { PrismaService } from "src/database/prisma.service";
 import { DeliveryAttemptStatus, NotificationStatus } from 'src/generated/prisma/client';
-import { ResendEmailService } from "../../infrastructure/email/resend-email.service";
-
+import { NotificationSenderRegistry } from "../senders/notification-sender.registry";
 
 
 type ProcessNotificationJob = {
@@ -18,25 +17,23 @@ export class NotificationProcessor extends WorkerHost {
 
     constructor(
         private readonly prismaService: PrismaService,
-        private readonly resendEmailService: ResendEmailService,
+        private readonly senderRegistry: NotificationSenderRegistry,
     ) {
         super();
     }
 
     async process(job: Job<ProcessNotificationJob>) {
-          const isResend = job.name === RESEND_NOTIFICATION_JOB;
+        const isResend = job.name === RESEND_NOTIFICATION_JOB;
 
         if (job.name !== PROCESS_NOTIFICATION_JOB && !isResend) {
             throw new Error(`Unsupported job: ${job.name}`);
         }
 
         const notification = await this.prismaService.notification.findUnique({
-            where: {
-                id: job.data.notificationId,
-            },
+            where: { id: job.data.notificationId },
         });
 
-        if (!notification)  return;
+        if (!notification) return;
 
         if (
             !isResend &&
@@ -50,45 +47,33 @@ export class NotificationProcessor extends WorkerHost {
         const previousAttempts = await this.prismaService.deliveryAttempt.count({
             where: { notificationId: notification.id },
         });
- 
 
         const attemptNumber = previousAttempts + 1;
+        const sender = this.senderRegistry.resolve(notification.channel);
         let deliveryAttemptId: string | null = null;
 
         try {
             await this.prismaService.notification.update({
-                where: {
-                    id: notification.id,
-                },
-                data: {
-                    status: NotificationStatus.PROCESSING,
-                },
+                where: { id: notification.id },
+                data: { status: NotificationStatus.PROCESSING },
             });
 
             const deliveryAttempt = await this.prismaService.deliveryAttempt.create({
                 data: {
                     notificationId: notification.id,
                     attemptNumber,
-                    provider: 'RESEND',
+                    provider: sender.providerName,
                     status: DeliveryAttemptStatus.PROCESSING,
                 },
             });
 
             deliveryAttemptId = deliveryAttempt.id;
 
-            const providerMessageId = await this.resendEmailService.send({
-                id: notification.id,
-                recipient: notification.recipient,
-                subject: notification.subject,
-                htmlContent: notification.htmlContent,
-                textContent: notification.textContent,
-            });
+            const providerMessageId = await sender.send(notification);
 
             await this.prismaService.$transaction([
                 this.prismaService.deliveryAttempt.update({
-                    where: {
-                        id: deliveryAttempt.id,
-                    },
+                    where: { id: deliveryAttempt.id },
                     data: {
                         status: DeliveryAttemptStatus.SUCCESS,
                         providerMessageId,
@@ -96,9 +81,7 @@ export class NotificationProcessor extends WorkerHost {
                     },
                 }),
                 this.prismaService.notification.update({
-                    where: {
-                        id: notification.id,
-                    },
+                    where: { id: notification.id },
                     data: {
                         status: NotificationStatus.SENT,
                         sentAt: new Date(),
@@ -106,7 +89,7 @@ export class NotificationProcessor extends WorkerHost {
                 }),
             ]);
 
-            this.logger.log(`Email sent: ${notification.id}`);
+            this.logger.log(`${notification.channel} sent: ${notification.id}`);
 
             return {
                 notificationId: notification.id,
@@ -114,19 +97,17 @@ export class NotificationProcessor extends WorkerHost {
             };
         } catch (error) {
             const errorMessage =
-                error instanceof Error ? error.message : 'Unknown email sending error.';
+                error instanceof Error ? error.message : 'Unknown sending error.';
 
             const maxAttempts = job.opts.attempts ?? 1;
             const isLastAttempt = job.attemptsMade + 1 >= maxAttempts;
 
             if (deliveryAttemptId) {
                 await this.prismaService.deliveryAttempt.update({
-                    where: {
-                        id: deliveryAttemptId,
-                    },
+                    where: { id: deliveryAttemptId },
                     data: {
                         status: DeliveryAttemptStatus.FAILED,
-                        errorCode: 'EMAIL_SEND_FAILED',
+                        errorCode: `${notification.channel}_SEND_FAILED`,
                         errorMessage,
                         completedAt: new Date(),
                     },
@@ -134,9 +115,7 @@ export class NotificationProcessor extends WorkerHost {
             }
 
             await this.prismaService.notification.update({
-                where: {
-                    id: notification.id,
-                },
+                where: { id: notification.id },
                 data: {
                     status: isLastAttempt
                         ? NotificationStatus.FAILED
@@ -146,7 +125,7 @@ export class NotificationProcessor extends WorkerHost {
             });
 
             this.logger.error(
-                `Email failed for notification ${notification.id}: ${errorMessage}`,
+                `${notification.channel} failed for notification ${notification.id}: ${errorMessage}`,
             );
 
             throw error;
