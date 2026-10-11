@@ -6,6 +6,8 @@ import { PrismaService } from "src/database/prisma.service";
 import { NotificationChannel, NotificationStatus, Prisma } from "src/generated/prisma/client";
 import { handlePrismaError } from "src/database/helpers/prisma-error.handler";
 import { NotificationQueueService } from "../../queues/notification-queue.service";
+import { BadRequestException } from "@nestjs/common";
+import { isEmail } from "class-validator";
 
 
 @CommandHandler(CreateNotificationCommand)
@@ -37,6 +39,13 @@ export class CreateNotificationHandler implements ICommandHandler<CreateNotifica
 
     private async createNotification(projectId: string, idempotencyKey: string, dataNotification: CreateNotificationDto) {
 
+        if (dataNotification.channel === NotificationChannel.EMAIL && !isEmail(dataNotification.recipient)) {
+            throw new BadRequestException('recipient must be a valid email for channel EMAIL.');
+        }
+        if (dataNotification.channel === NotificationChannel.SMS && !/^\+[1-9]\d{1,14}$/.test(dataNotification.recipient)) {
+            throw new BadRequestException('recipient must be a valid E.164 phone number (e.g. +50255551234).');
+        }
+
         const existing = await this.prismaService.notification.findUnique({
             where: {
                 projectId_idempotencyKey: {
@@ -48,9 +57,11 @@ export class CreateNotificationHandler implements ICommandHandler<CreateNotifica
 
         if (existing) {
             const isSameRequest =
+                existing.channel === dataNotification.channel &&
                 existing.recipient === dataNotification.recipient &&
                 existing.subject === dataNotification.subject &&
-                existing.htmlContent === dataNotification.htmlContent &&
+                existing.subject === (dataNotification.subject ?? null) &&
+                existing.htmlContent === (dataNotification.htmlContent ?? null) &&
                 existing.textContent === (dataNotification.textContent ?? null) &&
                 JSON.stringify(existing.metadata) ===
                 JSON.stringify(dataNotification.metadata ?? null);
@@ -71,7 +82,7 @@ export class CreateNotificationHandler implements ICommandHandler<CreateNotifica
                 htmlContent: dataNotification.htmlContent,
                 textContent: dataNotification.textContent,
                 metadata: dataNotification.metadata as Prisma.InputJsonValue | undefined,
-                channel: NotificationChannel.EMAIL,
+                channel: dataNotification.channel,
                 status: NotificationStatus.PENDING,
             },
         });

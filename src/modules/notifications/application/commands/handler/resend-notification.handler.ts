@@ -1,4 +1,4 @@
-import { CommandHandler, ICommand, ICommandHandler } from "@nestjs/cqrs";
+import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
 import { ResendNotificationCommand } from "../impl/resend-notification.command";
 import { ConflictException, Logger, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "src/database/prisma.service";

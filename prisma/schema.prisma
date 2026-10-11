@@ -40,12 +40,12 @@ enum DeliveryAttemptStatus {
 }
 
 model Project {
-  id        String       @id @default(uuid()) @db.Uuid
-  name      String       @db.VarChar(150)
-  slug      String       @unique @db.VarChar(150)
+  id        String        @id @default(uuid()) @db.Uuid
+  name      String        @db.VarChar(150)
+  slug      String        @unique @db.VarChar(150)
   status    ProjectStatus @default(ACTIVE)
-  createdAt DateTime     @default(now()) @map("created_at")
-  updatedAt DateTime     @updatedAt @map("updated_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
 
   api_keys      ApiKey[]
   notifications Notification[]
@@ -75,8 +75,8 @@ model Notification {
   projectId      String              @map("project_id") @db.Uuid
   channel        NotificationChannel @default(EMAIL)
   recipient      String              @db.VarChar(320)
-  subject        String              @db.VarChar(255)
-  htmlContent    String              @map("html_content") @db.Text
+  subject        String?             @db.VarChar(255)
+  htmlContent    String?             @map("html_content") @db.Text
   textContent    String?             @map("text_content") @db.Text
   metadata       Json?
   status         NotificationStatus  @default(PENDING)
