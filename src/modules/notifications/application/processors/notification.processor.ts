@@ -69,7 +69,13 @@ export class NotificationProcessor extends WorkerHost {
 
             deliveryAttemptId = deliveryAttempt.id;
 
-            const providerMessageId = await sender.send(notification);
+            // Un reenvío manual usa una llave distinta (incluye el id del job),
+            // pero estable entre los reintentos de BullMQ de ese mismo job.
+            const idempotencyKey = isResend
+                ? `notification/${notification.id}/${job.id}`
+                : `notification/${notification.id}`;
+
+            const providerMessageId = await sender.send(notification, { idempotencyKey });
 
             await this.prismaService.$transaction([
                 this.prismaService.deliveryAttempt.update({

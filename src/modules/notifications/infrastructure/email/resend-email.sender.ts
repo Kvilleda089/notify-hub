@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { Resend } from 'resend';
 import { env } from 'src/config';
 import { Notification, NotificationChannel } from 'src/generated/prisma/client';
-import { NotificationSender } from '../../domain/interface/notification-sender.interface';
+import {
+  NotificationSender,
+  SendOptions,
+} from '../../domain/interface/notification-sender.interface';
 
 @Injectable()
 export class ResendEmailSender implements NotificationSender {
@@ -10,7 +13,7 @@ export class ResendEmailSender implements NotificationSender {
   readonly providerName = 'RESEND';
   private readonly resend = new Resend(env.resend_api_key);
 
-  async send(notification: Notification): Promise<string> {
+  async send(notification: Notification, options?: SendOptions): Promise<string> {
     if (!notification.subject || !notification.htmlContent) {
       throw new Error('subject and htmlContent are required to send an email.');
     }
@@ -23,7 +26,9 @@ export class ResendEmailSender implements NotificationSender {
         html: notification.htmlContent,
         text: notification.textContent ?? undefined,
       },
-      { idempotencyKey: `notification/${notification.id}` },
+      {
+        idempotencyKey: options?.idempotencyKey ?? `notification/${notification.id}`,
+      },
     );
 
     if (error || !data?.id) {
