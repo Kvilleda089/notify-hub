@@ -1,12 +1,11 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
 import { CreateNotificationCommand } from "../impl/create-notification.command";
-import { ConflictException, Logger } from "@nestjs/common";
+import { BadRequestException, ConflictException, Logger } from "@nestjs/common";
 import { CreateNotificationDto } from "src/modules/notifications/domain/dto/create-notification.dto";
 import { PrismaService } from "src/database/prisma.service";
 import { NotificationChannel, NotificationStatus, Prisma } from "src/generated/prisma/client";
 import { handlePrismaError } from "src/database/helpers/prisma-error.handler";
 import { NotificationQueueService } from "../../queues/notification-queue.service";
-import { BadRequestException } from "@nestjs/common";
 import { isEmail } from "class-validator";
 
 
@@ -59,7 +58,6 @@ export class CreateNotificationHandler implements ICommandHandler<CreateNotifica
             const isSameRequest =
                 existing.channel === dataNotification.channel &&
                 existing.recipient === dataNotification.recipient &&
-                existing.subject === dataNotification.subject &&
                 existing.subject === (dataNotification.subject ?? null) &&
                 existing.htmlContent === (dataNotification.htmlContent ?? null) &&
                 existing.textContent === (dataNotification.textContent ?? null) &&
@@ -68,6 +66,11 @@ export class CreateNotificationHandler implements ICommandHandler<CreateNotifica
 
             if (!isSameRequest) {
                 throw new ConflictException(`Idempotency-Key is already being used with different data.`);
+            }
+
+            // Si quedó sin encolar (por ejemplo, Redis cayó), se vuelve a intentar
+            if (existing.status === NotificationStatus.PENDING) {
+                return this.queueNotification(existing.id);
             }
 
             return existing;
@@ -87,35 +90,25 @@ export class CreateNotificationHandler implements ICommandHandler<CreateNotifica
             },
         });
 
+        return this.queueNotification(notification.id);
+    }
 
-        const queuedNotification = await this.prismaService.notification.update({
-            where: {
-                id: notification.id,
-            },
-            data: {
-                status: NotificationStatus.QUEUED,
-                queuedAt: new Date(),
-            },
+    private async queueNotification(notificationId: string) {
+        const queued = await this.prismaService.notification.update({
+            where: { id: notificationId },
+            data: { status: NotificationStatus.QUEUED, queuedAt: new Date() },
         });
 
         try {
-            await this.notificationQueueService.enqueue(notification.id);
-
-            return queuedNotification;
+            await this.notificationQueueService.enqueue(notificationId);
+            return queued;
         } catch (error) {
             await this.prismaService.notification.update({
-                where: {
-                    id: notification.id,
-                },
-                data: {
-                    status: NotificationStatus.PENDING,
-                    queuedAt: null,
-                },
+                where: { id: notificationId },
+                data: { status: NotificationStatus.PENDING, queuedAt: null },
             });
-
             throw error;
         }
     }
-
 
 }
