@@ -85,6 +85,7 @@
   ],
   "coverageDirectory": "../coverage",
   "testEnvironment": "node",
+  "setupFiles": ["<rootDir>/../test/jest.setup.ts"],
   "moduleNameMapper": {
     "^src/(.*)$": "<rootDir>/$1",
     "^(\\.{1,2}/.*)\\.js$": "$1"
