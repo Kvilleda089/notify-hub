@@ -1,4 +1,4 @@
-import { IsEnum, IsIn, IsNotEmpty, IsObject, IsOptional, IsString, MaxLength, ValidateIf } from "class-validator";
+import { IsIn, IsNotEmpty, IsObject, IsOptional, IsString, MaxLength, ValidateIf } from "class-validator";
 import { NotificationChannel } from "src/generated/prisma/client";
 
 export class CreateNotificationDto {
