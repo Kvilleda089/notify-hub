@@ -7,6 +7,8 @@ interface EnVars {
   DATABASE_URL: string;
   REDIS_HOST: string;
   REDIS_PORT: number;
+  REDIS_PASSWORD: string;
+  REDIS_TLS: boolean;
   ADMIN_API_TOKEN: string;
   API_KEY_PEPPER: string;
   RESEND_API_KEY: string;
@@ -32,6 +34,8 @@ const envsSchema = joi
     DATABASE_URL: joi.string().required(),
     REDIS_HOST: joi.string().required(),
     REDIS_PORT: joi.number().required(),
+    REDIS_PASSWORD: joi.string().allow('').default(''),
+    REDIS_TLS: joi.boolean().default(false),
     ADMIN_API_TOKEN: joi.string().required(),
     API_KEY_PEPPER: joi.string().required(),
     RESEND_API_KEY: joi.string().required(),
@@ -59,6 +63,8 @@ export const env = {
   database_url: envVars.DATABASE_URL,
   redis_host: envVars.REDIS_HOST,
   redis_port: envVars.REDIS_PORT,
+  redis_password: envVars.REDIS_PASSWORD,
+  redis_tls: envVars.REDIS_TLS,
   admin_api_token: envVars.ADMIN_API_TOKEN,
   api_key_pepper: envVars.API_KEY_PEPPER,
   resend_api_key: envVars.RESEND_API_KEY,
